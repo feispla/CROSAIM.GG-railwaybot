@@ -42,8 +42,28 @@ INTERVIEW_NOTICE_CHANNEL_ID = int(os.getenv("INTERVIEW_NOTICE_CHANNEL_ID", "0"))
 CROSAIM_WEB_BASE_URL = os.getenv("CROSAIM_WEB_BASE_URL", "https://crosaimdash-h9bxzuxs.manus.space").rstrip("/")
 CROSAIM_BOT_SYNC_SECRET = os.getenv("CROSAIM_BOT_SYNC_SECRET", "")
 HEALTH_PORT = int(os.getenv("PORT", "10000"))
+
+
+def _parse_webhook_id(raw_value: str) -> int:
+    """Extract the numeric webhook ID from an env var.
+
+    Accepts either a bare ID (e.g. "1549076567148339350") or a full Discord
+    webhook URL (e.g. "https://discord.com/api/webhooks/<id>/<token>") and
+    returns the numeric ID as an int. Returns 0 if no value/ID is found.
+    """
+    value = (raw_value or "").strip()
+    if not value:
+        return 0
+    match = re.search(r"/webhooks/(\d+)", value)
+    if match:
+        return int(match.group(1))
+    if value.isdigit():
+        return int(value)
+    return 0
+
+
 # Optional: leave empty to accept any webhook message arriving in the postulation channel.
-POSTULACION_WEBHOOK_ID = int(os.getenv("POSTULACION_WEBHOOK_ID", "0") or "0")
+POSTULACION_WEBHOOK_ID = _parse_webhook_id(os.getenv("POSTULACION_WEBHOOK_ID", "0"))
 if not TOKEN:
     raise RuntimeError("Falta DISCORD_BOT_TOKEN en .env")
 intents = discord.Intents.default()
