@@ -569,4 +569,190 @@ para la matriz de roles, permisos mínimos y política no destructiva.
 
 # Documentación relacionada
 
-Este reposito
+Este repositorio contiene documentación reutilizable para la integración:
+
+```text
+WEB_INTEGRATION_GUIDE.md
+supabase_profile_schema.sql
+examples/application_submitted.json
+SYNC_CONTRACT.md
+ARQUITECTURA_CROSAIM.md
+skills/crosaim-discord-supabase-sync/SKILL.md
+DISCORD_OPERATIONS.md
+SUPABASE_HOSTING.md
+```
+
+Estas piezas deben mantenerse sincronizadas con los contratos reales antes de ejecutar migraciones.
+
+---
+
+# Migraciones Supabase
+
+Las migraciones relacionadas con aplicaciones deben tratarse como cambios controlados.
+
+En particular:
+
+```text
+supabase_migration_application_state.sql
+```
+
+y cualquier futura migración de:
+
+```text
+postulaciones.application_id
+```
+
+deben revisarse contra el esquema real de Supabase antes de ejecutarse.
+
+**No ejecutar una migración de producción únicamente porque exista el archivo SQL en GitHub.**
+
+GitHub contiene:
+
+```text
+schema
+migrations
+code
+documentation
+```
+
+Supabase contiene:
+
+```text
+runtime data
+```
+
+La migración debe validarse primero en staging.
+
+---
+
+# Reconciliación
+
+Actualmente no existe todavía una reconciliación runtime completa entre:
+
+```text
+Supabase application
+Supabase audit
+VANT outbox
+Discord delivery
+```
+
+La arquitectura futura deberá detectar al menos:
+
+```text
+healthy
+event_missing
+application_missing
+payload_conflict
+audit_missing
+ack_missing
+discord_delivery_missing
+duplicate
+manual_review
+```
+
+La primera fase de reconciliación debe ser **read-only**.
+
+No deben realizarse repairs automáticos hasta definir reglas deterministas y un procedimiento de rollback.
+
+---
+
+# Estado de migración CROSAIM → VANT
+
+```text
+CANONICAL ECOSYSTEM NAME = VANT
+```
+
+La migración es progresiva.
+
+Las referencias históricas de CROSAIM pueden permanecer temporalmente en:
+
+* nombres de repositorios;
+* servicios Railway;
+* variables legacy;
+* URLs internas;
+* aliases API;
+* documentación histórica;
+* compatibilidad con clientes existentes.
+
+No realizar reemplazos globales ciegos.
+
+Los nuevos contratos deben utilizar nomenclatura VANT.
+
+```text
+VANT
+VANT: VEIL
+VANT Discord Bot
+VANT Control Plane
+VANT Game Plane
+VANT Contracts
+```
+
+---
+
+# Estado actual de arquitectura
+
+```text
+OWNERSHIP AUDIT = COMPLETE
+
+APPLICATION_SCHEMA_OWNER
+= feispla/CROSAIM.GG-railwaybot
+
+APPLICATION_AUDIT_OWNER
+= feispla/CROSAIM.GG-railwaybot
+
+VANT_API_OWNER
+= feispla/crosaim-canonical-web
+
+OUTBOX_OWNER
+= feispla/crosaim-canonical-web
+
+CONTROL_PLANE_OWNER
+= feispla/VANTGAME-Control-Plane
+
+APPLICATION_ID
+= NOT YET IMPLEMENTED
+
+RECONCILIATION
+= NOT YET COMPLETE
+
+PRODUCTION MIGRATION
+= NOT AUTHORIZED
+
+STAGING
+= REQUIRED
+
+CURRENT ARCHITECTURAL ISSUE
+= SPLIT WRITE PATHS
+
+TARGET
+= SUPABASE AS SINGLE APPLICATION AUTHORITY
+```
+
+---
+
+# Reglas de seguridad para cambios futuros
+
+Antes de cualquier cambio estructural:
+
+1. identificar el repositorio propietario;
+2. inspeccionar el esquema real;
+3. preparar migración;
+4. preparar tests;
+5. validar idempotencia;
+6. validar compatibilidad;
+7. probar en staging;
+8. ejecutar reconciliación read-only;
+9. definir rollback;
+10. revisar antes de producción.
+
+Nunca:
+
+* crear una segunda autoridad de aplicaciones;
+* duplicar `postulaciones` en otro repositorio;
+* usar `discordMessageId` como `application_id`;
+* eliminar la FK existente de auditoría sin migración explícita;
+* sobrescribir conflictos de payload;
+* ejecutar SQL destructivo sin preflight;
+* desplegar una migración no validada;
+* almacenar secretos en GitHub.
+
