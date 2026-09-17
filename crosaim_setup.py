@@ -307,7 +307,7 @@ class RuntimeConfig:
     """Stores a versioned reconciler registry outside Git on persistent storage."""
 
     def __init__(self) -> None:
-        configured = os.getenv("CROSAIM_RUNTIME_CONFIG_PATH", "data/crosaim-discord.json")
+        configured = os.getenv("VANT_RUNTIME_CONFIG_PATH", os.getenv("CROSAIM_RUNTIME_CONFIG_PATH", "data/vant-discord.json"))
         self.path = Path(configured)
 
     def load(self) -> dict[str, object]:
