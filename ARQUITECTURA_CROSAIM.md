@@ -78,11 +78,11 @@ Web crea application_submitted
     ↓
 Supabase guarda la postulación y el evento
     ↓
-bot.py consulta GET /api/discord/events
+bot.py consulta GET /api/vant/events
     ↓
     bot.py publica datos en REVISION_CHANNEL_ID
     ↓
-bot.py confirma POST /api/discord/events/{id}/ack
+bot.py confirma POST /api/vant/events/{id}/ack
     ↓
 Supabase marca el evento como entregado
 ```
@@ -212,8 +212,9 @@ REVISION_CHANNEL_ID=id-del-canal
 APROBACION_CHANNEL_ID=id-del-canal
 SUPABASE_URL=https://proyecto.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=valor-secreto
-CROSAIM_WEB_BASE_URL=https://crosaimdash-h9bxzuxs.manus.space
-CROSAIM_BOT_SYNC_SECRET=valor-secreto
+VANT_WEB_BASE_URL=https://crosaimweb-imugysk4.manus.space
+VANT_BOT_SYNC_SECRET=valor-secreto
+VANT_SIGNED_SYNC_REQUIRED=true
 CLIPS_CHANNEL_ID=id-del-canal
 INTERVIEW_VOICE_CHANNEL_ID=id-del-canal
 INTERVIEW_NOTICE_CHANNEL_ID=id-del-canal

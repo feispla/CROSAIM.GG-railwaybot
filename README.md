@@ -16,9 +16,9 @@ Configura el token, los IDs de canales y Supabase únicamente en `.env`. Nunca p
 
 Consulta `SUPABASE_HOSTING.md` para el esquema de base de datos y las opciones de alojamiento 24/7.
 
-## Sincronización con el panel CROSAIM
+## Sincronización con el Control Plane VANT
 
-El bot puede consultar la cola protegida de eventos del panel y publicar en Discord las nuevas postulaciones aprobadas, entrevistas, tryouts y clips. Configura en Railway las variables `CROSAIM_WEB_BASE_URL`, `CROSAIM_BOT_SYNC_SECRET`, `CLIPS_CHANNEL_ID` e `INTERVIEW_VOICE_CHANNEL_ID`. La clave `CROSAIM_BOT_SYNC_SECRET` debe ser idéntica en la web y en Railway.
+El bot consulta la cola protegida de eventos VANT y publica en Discord las nuevas postulaciones aprobadas, entrevistas, tryouts y clips. Configura en Railway `VANT_WEB_BASE_URL`, `VANT_BOT_SYNC_SECRET`, `VANT_SIGNED_SYNC_REQUIRED=true`, `CLIPS_CHANNEL_ID` e `INTERVIEW_VOICE_CHANNEL_ID`. La clave `VANT_BOT_SYNC_SECRET` debe ser idéntica en la web y en Railway. Las variables `CROSAIM_WEB_BASE_URL`, `CROSAIM_BOT_SYNC_SECRET` y `CROSAIM_SIGNED_SYNC_REQUIRED` se mantienen solo como aliases de transición.
 
 Cuando una postulación pasa a entrevista, el bot menciona al candidato y, si el usuario ya está conectado a un canal de voz y el bot tiene el permiso **Mover miembros** con una posición superior en la jerarquía, lo mueve a `𝑽𝑨𝑳𝑶𝑹𝑨𝑵𝑻`. Discord no permite mover automáticamente a un usuario que todavía no está conectado a voz; en ese caso el bot deja el aviso y el enlace del canal.
 

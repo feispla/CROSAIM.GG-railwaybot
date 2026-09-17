@@ -1,10 +1,10 @@
-# Contrato de sincronización web ↔ Supabase ↔ Discord
+# Contrato de sincronización VANT web ↔ Supabase ↔ Discord
 
 El repositorio del bot es la base operativa versionada. **GitHub guarda el código y la configuración no secreta; Supabase guarda los datos y la cola de eventos; el proceso de ejecución mantiene el bot conectado a Discord.** Los tokens nunca se guardan en GitHub.
 
 ## Eventos que el bot consume
 
-La API de la web debe devolver eventos pendientes desde `GET /api/discord/events` usando el header `x-crosaim-sync-secret`. Cada evento debe tener:
+La API de la web debe devolver eventos pendientes desde `GET /api/vant/events` usando los headers VANT firmados. Durante la transición, `/api/discord/events` y los headers CROSAIM permanecen como aliases compatibles. Cada evento debe tener:
 
 ```json
 {
@@ -25,7 +25,7 @@ También procesa `application_review`, `application_interview`, `application_app
 
 ## Confirmación y reintentos
 
-Después de publicar correctamente, el bot llama a `POST /api/discord/events/{id}/ack` con `{ "ok": true }`. Si falla Discord, llama con `{ "ok": false, "error": "..." }`. La web debe conservar los eventos fallidos para reintento y no eliminarlos antes de un ACK exitoso.
+Después de publicar correctamente, el bot llama a `POST /api/vant/events/{id}/ack` con `{ "ok": true, "leaseToken": "..." }`. Si falla Discord, llama con `{ "ok": false, "leaseToken": "...", "error": "..." }`. La web debe conservar los eventos fallidos para reintento y no eliminarlos antes de un ACK exitoso.
 
 La tabla de eventos debe tener una clave única para evitar duplicados, por ejemplo:
 
@@ -54,8 +54,11 @@ La imagen `Dockerfile` permite ejecutar el bot en Railway, Render Worker, Fly.io
 DISCORD_BOT_TOKEN=...
 SUPABASE_URL=...
 SUPABASE_SERVICE_ROLE_KEY=...
-CROSAIM_WEB_BASE_URL=https://crosaimdash-h9bxzuxs.manus.space
-CROSAIM_BOT_SYNC_SECRET=...
+VANT_WEB_BASE_URL=https://crosaimweb-imugysk4.manus.space
+VANT_BOT_SYNC_SECRET=...
+VANT_SIGNED_SYNC_REQUIRED=true
 ```
+
+`CROSAIM_WEB_BASE_URL` y `CROSAIM_BOT_SYNC_SECRET` siguen aceptándose como aliases de compatibilidad, pero las nuevas instalaciones deben usar las variables VANT.
 
 No subas `.env` al repositorio. El workflow de GitHub ejecuta pruebas, pero **GitHub Actions no debe usarse como proceso 24/7**: sus runners son temporales. El bot debe ejecutarse en un worker o servicio persistente.

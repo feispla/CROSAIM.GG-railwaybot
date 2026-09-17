@@ -39,8 +39,9 @@ APROBACION_CHANNEL_ID = int(os.getenv("APROBACION_CHANNEL_ID", "0"))
 CLIPS_CHANNEL_ID = int(os.getenv("CLIPS_CHANNEL_ID", "0"))
 INTERVIEW_VOICE_CHANNEL_ID = int(os.getenv("INTERVIEW_VOICE_CHANNEL_ID", "0"))
 INTERVIEW_NOTICE_CHANNEL_ID = int(os.getenv("INTERVIEW_NOTICE_CHANNEL_ID", "0"))
-CROSAIM_WEB_BASE_URL = os.getenv("CROSAIM_WEB_BASE_URL", "https://crosaimdash-h9bxzuxs.manus.space").rstrip("/")
-CROSAIM_BOT_SYNC_SECRET = os.getenv("CROSAIM_BOT_SYNC_SECRET", "")
+VANT_WEB_BASE_URL = os.getenv("VANT_WEB_BASE_URL", os.getenv("CROSAIM_WEB_BASE_URL", "https://crosaimweb-imugysk4.manus.space")).rstrip("/")
+VANT_BOT_SYNC_SECRET = os.getenv("VANT_BOT_SYNC_SECRET", os.getenv("CROSAIM_BOT_SYNC_SECRET", ""))
+VANT_SIGNED_SYNC_REQUIRED = os.getenv("VANT_SIGNED_SYNC_REQUIRED", os.getenv("CROSAIM_SIGNED_SYNC_REQUIRED", "true")).lower() == "true"
 HEALTH_PORT = int(os.getenv("PORT", "10000"))
 
 
@@ -145,24 +146,22 @@ def value(data: dict[str, Any], *keys: str, default: str = "Por confirmar") -> s
 
 def signed_sync_headers(method: str, path: str, body: dict[str, Any] | None = None) -> tuple[dict[str, str], str]:
     """Creates a replay-resistant service-to-service request signature."""
-    if not CROSAIM_BOT_SYNC_SECRET:
-        raise RuntimeError("Falta CROSAIM_BOT_SYNC_SECRET")
+    if not VANT_BOT_SYNC_SECRET:
+        raise RuntimeError("Falta VANT_BOT_SYNC_SECRET")
     serialized = "" if body is None else json.dumps(body, ensure_ascii=False, separators=(",", ":"))
     timestamp = str(int(time.time() * 1000))
     nonce = secrets.token_hex(16)
     body_hash = hashlib.sha256(serialized.encode("utf-8")).hexdigest()
     signing_payload = "\n".join((method.upper(), path, timestamp, nonce, body_hash))
-    signature = hmac.new(CROSAIM_BOT_SYNC_SECRET.encode("utf-8"), signing_payload.encode("utf-8"), hashlib.sha256).hexdigest()
+    signature = hmac.new(VANT_BOT_SYNC_SECRET.encode("utf-8"), signing_payload.encode("utf-8"), hashlib.sha256).hexdigest()
     return {
         "Content-Type": "application/json",
-        # Transitional compatibility: the Control Center can accept this while
-        # CROSAIM_SIGNED_SYNC_REQUIRED=false during the coordinated rollout.
-        "x-crosaim-sync-secret": CROSAIM_BOT_SYNC_SECRET,
-        "x-crosaim-sync-key-id": "v1",
-        "x-crosaim-sync-timestamp": timestamp,
-        "x-crosaim-sync-nonce": nonce,
-        "x-crosaim-sync-body-sha256": body_hash,
-        "x-crosaim-sync-signature": signature,
+        "x-vant-sync-secret": VANT_BOT_SYNC_SECRET,
+        "x-vant-sync-key-id": "v1",
+        "x-vant-sync-timestamp": timestamp,
+        "x-vant-sync-nonce": nonce,
+        "x-vant-sync-body-sha256": body_hash,
+        "x-vant-sync-signature": signature,
     }, serialized
 
 
@@ -232,8 +231,8 @@ def find_player_mention(data: dict[str, Any], content: str) -> str | None:
 
 
 async def sync_application_to_web(data: dict[str, Any], message: discord.Message) -> str | None:
-    if not CROSAIM_BOT_SYNC_SECRET:
-        logging.warning("No se sincroniza la postulación web: falta CROSAIM_BOT_SYNC_SECRET")
+    if not VANT_BOT_SYNC_SECRET:
+        logging.warning("No se sincroniza la postulación web: falta VANT_BOT_SYNC_SECRET")
         return None
     discord_id = str(data.get("discord_id") or "").strip()
     mention = re.search(r"<@!?(\d{15,22})>", message.content or "")
@@ -249,10 +248,10 @@ async def sync_application_to_web(data: dict[str, Any], message: discord.Message
         "rank": value(data, "rango", "rank", default="Por confirmar"),
         "message": value(data, "mensaje", "message", "descripcion", "texto", default="Postulación recibida desde Discord."),
     }
-    headers, serialized = signed_sync_headers("POST", "/api/discord/applications", payload)
+    headers, serialized = signed_sync_headers("POST", "/api/vant/applications", payload)
     async with aiohttp.ClientSession() as session:
         async with session.post(
-            f"{CROSAIM_WEB_BASE_URL}/api/discord/applications",
+            f"{VANT_WEB_BASE_URL}/api/vant/applications",
             headers=headers,
             data=serialized,
             timeout=aiohttp.ClientTimeout(total=15),
@@ -264,15 +263,16 @@ async def sync_application_to_web(data: dict[str, Any], message: discord.Message
 
 
 async def acknowledge_web_event(event_id: int, lease_token: str, ok: bool, error: str | None = None) -> None:
-    if not CROSAIM_BOT_SYNC_SECRET:
-        raise RuntimeError("Falta CROSAIM_BOT_SYNC_SECRET")
+    if not VANT_BOT_SYNC_SECRET:
+        raise RuntimeError("Falta VANT_BOT_SYNC_SECRET")
     payload = {"ok": ok, "leaseToken": lease_token}
     if error:
         payload["error"] = error[:500]
-    headers, serialized = signed_sync_headers("POST", f"/api/discord/events/{event_id}/ack", payload)
+    path = f"/api/vant/events/{event_id}/ack"
+    headers, serialized = signed_sync_headers("POST", path, payload)
     async with aiohttp.ClientSession() as session:
         async with session.post(
-            f"{CROSAIM_WEB_BASE_URL}/api/discord/events/{event_id}/ack",
+            f"{VANT_WEB_BASE_URL}{path}",
             headers=headers,
             data=serialized,
             timeout=aiohttp.ClientTimeout(total=15),
@@ -419,13 +419,14 @@ async def deliver_web_event(event: dict[str, Any]) -> None:
 
 @tasks.loop(seconds=8)
 async def poll_web_events() -> None:
-    if not CROSAIM_BOT_SYNC_SECRET:
+    if not VANT_BOT_SYNC_SECRET:
         return
     try:
-        headers, _ = signed_sync_headers("GET", "/api/discord/events")
+        path = "/api/vant/events"
+        headers, _ = signed_sync_headers("GET", path)
         async with aiohttp.ClientSession() as session:
             async with session.get(
-                f"{CROSAIM_WEB_BASE_URL}/api/discord/events",
+                f"{VANT_WEB_BASE_URL}{path}",
                 headers=headers,
                 timeout=aiohttp.ClientTimeout(total=15),
             ) as response:
@@ -450,7 +451,7 @@ async def poll_web_events() -> None:
                 except Exception:
                     logging.exception("No se pudo confirmar fallo del evento %s", event_id)
     except Exception:
-        logging.exception("Error consultando eventos de CROSAIM")
+        logging.exception("Error consultando eventos de VANT")
 
 
 @poll_web_events.before_loop
@@ -697,7 +698,7 @@ async def on_message(message: discord.Message):
         public_lookup_number = await sync_application_to_web(data, message)
         if public_lookup_number and message.author and not message.author.bot:
             try:
-                await message.author.send(f"Tu postulación CROSAIM fue recibida. Número privado de consulta: **{public_lookup_number}**\nConsulta el estado en {CROSAIM_WEB_BASE_URL} sin iniciar sesión.")
+                await message.author.send(f"Tu postulación CROSAIM fue recibida. Número privado de consulta: **{public_lookup_number}**\nConsulta el estado en {VANT_WEB_BASE_URL} sin iniciar sesión.")
             except discord.HTTPException:
                 logging.info("No se pudo enviar DM de consulta a %s", message.author)
     except Exception:

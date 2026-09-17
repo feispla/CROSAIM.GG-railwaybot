@@ -8,7 +8,7 @@ Este directorio contiene los contratos JSON versionados que comparten `crosaim-c
 |---|---|
 | `content_compliance.schema.json` | Respuesta estructurada de IA para revisión de contenido. Mantiene los campos del ejemplo original y añade confianza, revisión manual, versión de política y evidencia. |
 | `sync_event.schema.json` | Sobre común para eventos publicados por la web y consumidos por el bot mediante la cola Discord. |
-| `application_sync.schema.json` | Payload que el bot envía a `POST /api/discord/applications`. |
+| `application_sync.schema.json` | Payload que el bot envía a `POST /api/vant/applications`. `/api/discord/applications` queda como alias de transición. |
 
 ## Reglas
 

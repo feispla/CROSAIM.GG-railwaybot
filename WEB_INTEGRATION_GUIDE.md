@@ -46,10 +46,10 @@ La aplicación debe configurar en Discord Developer Portal una redirect URI de b
 | GET | `/api/discord/callback` | Validar callback, obtener identidad y guardar vínculo |
 | POST | `/api/profile` | Guardar cambios del perfil autenticado |
 | POST | `/api/applications` | Crear postulación y evento `application_submitted` |
-| GET | `/api/discord/events` | Entregar lote de eventos pendientes al bot |
-| POST | `/api/discord/events/:id/ack` | Confirmar entrega o registrar fallo |
+| GET | `/api/vant/events` | Entregar lote de eventos pendientes al bot |
+| POST | `/api/vant/events/:id/ack` | Confirmar entrega o registrar fallo |
 
-Las rutas de eventos deben exigir `x-crosaim-sync-secret`. Las rutas de perfil deben usar la sesión Manus. El navegador no debe insertar directamente eventos como `delivered` ni modificar `discord_id` sin pasar por OAuth.
+Las rutas VANT deben exigir `x-vant-sync-secret` y la firma HMAC de método, ruta, timestamp, nonce y hash del cuerpo. Las rutas CROSAIM equivalentes se mantienen como aliases de transición. Las rutas de perfil deben usar la sesión Manus. El navegador no debe insertar directamente eventos como `delivered` ni modificar `discord_id` sin pasar por OAuth.
 
 ## Perfil mínimo
 
@@ -84,7 +84,7 @@ Para cambios importantes del perfil, crear `profile_updated` con una clave como 
 4. Implementar las rutas de conexión y callback.
 5. Crear la pantalla de edición de perfil.
 6. Crear `application_submitted` y `profile_updated` en la cola.
-7. Configurar el secreto compartido con Railway.
+7. Configurar `VANT_WEB_BASE_URL`, `VANT_BOT_SYNC_SECRET` y `VANT_SIGNED_SYNC_REQUIRED=true` en Railway.
 8. Probar una postulación en staging.
 9. Confirmar que el bot publica en revisión y hace ACK.
 10. Promover a producción.
