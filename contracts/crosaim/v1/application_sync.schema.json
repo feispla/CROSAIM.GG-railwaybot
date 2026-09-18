@@ -7,6 +7,7 @@
   "additionalProperties": false,
   "properties": {
     "discordMessageId": { "type": "string", "minLength": 1, "maxLength": 64 },
+    "applicationId": { "type": ["string", "null"], "format": "uuid", "description": "Supabase postulaciones.id. Optional during rollout; will become required once every producer sends it (see docs/BOT_INTEGRATION rollout plan)." },
     "discordUsername": { "type": "string", "minLength": 2, "maxLength": 120 },
     "discordUserId": { "type": ["string", "null"], "pattern": "^[0-9]{5,32}$" },
     "playerName": { "type": "string", "minLength": 2, "maxLength": 120 },

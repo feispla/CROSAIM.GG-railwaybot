@@ -230,7 +230,9 @@ def find_player_mention(data: dict[str, Any], content: str) -> str | None:
     return None
 
 
-async def sync_application_to_web(data: dict[str, Any], message: discord.Message) -> str | None:
+async def sync_application_to_web(
+    data: dict[str, Any], message: discord.Message, application_id: str | None = None
+) -> str | None:
     if not VANT_BOT_SYNC_SECRET:
         logging.warning("No se sincroniza la postulación web: falta VANT_BOT_SYNC_SECRET")
         return None
@@ -240,6 +242,12 @@ async def sync_application_to_web(data: dict[str, Any], message: discord.Message
         discord_id = mention.group(1)
     payload = {
         "discordMessageId": str(message.id),
+        # Supabase postulaciones.id — lets crosaim-canonical-web correlate
+        # this outbox event with the application record that actually owns
+        # it, instead of relying solely on discordMessageId. None when
+        # save_submission() failed or returned no id (legacy/degraded path);
+        # the web API accepts it as optional for backward compatibility.
+        "applicationId": application_id,
         "playerName": value(data, "nombre", "name", default="Jugador"),
         "discordUsername": value(data, "discord_username", "usuario de discord", "discord", default=message.author.name),
         "discordUserId": discord_id or None,
@@ -695,7 +703,7 @@ async def on_message(message: discord.Message):
         logging.exception("Supabase falló; se continuará enviando la postulación a revisión")
     public_lookup_number: str | None = None
     try:
-        public_lookup_number = await sync_application_to_web(data, message)
+        public_lookup_number = await sync_application_to_web(data, message, application_id=submission_id)
         if public_lookup_number and message.author and not message.author.bot:
             try:
                 await message.author.send(f"Tu postulación CROSAIM fue recibida. Número privado de consulta: **{public_lookup_number}**\nConsulta el estado en {VANT_WEB_BASE_URL} sin iniciar sesión.")
